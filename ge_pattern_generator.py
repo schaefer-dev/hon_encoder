@@ -86,7 +86,7 @@ def main():
 
     end = datetime.now()
     duration = (end - start).total_seconds()
-    print(f"Duration to generate pattern: {duration}s")
+    print("Duration to generate pattern: {duration}s")
 
 
 if __name__ == "__main__":
