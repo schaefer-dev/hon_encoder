@@ -1,5 +1,11 @@
-byte = bytes(int('10011001', 2))
+byte = b'\x99'
 # corresponds to 10011001
+
+number = byte[0]
+
+byte = bytes([number])
+
+print(byte[0])
 
 byte1 = int('00000000', 2)
 byte2 = int('00000000', 2)
@@ -15,9 +21,6 @@ bit_8_mask = int('10000000', 2)
 
 byte1 = int('00000000', 2)
 byte2 = int('00000000', 2)
-
-#print(format(byte, '08b'))
-byte = int.from_bytes(byte, 'big')
 
 byte1 |= (byte & bit_8_mask) >> 2
 byte1 |= (byte & bit_7_mask) >> 3
@@ -51,5 +54,5 @@ if par2 > 0:
 if par3 > 0:
     byte2 |= bit_5_mask
 
-print(byte1.to_bytes(1, 'big'))
-print(byte2.to_bytes(1, 'big'))
+print(byte1)
+print(byte2)

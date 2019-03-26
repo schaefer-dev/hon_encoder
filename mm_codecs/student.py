@@ -16,15 +16,17 @@ def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
         byte1 = int('00000000', 2)
         byte2 = int('00000000', 2)
 
-        byte1 |= (byte & bit_8_mask) >> 2
-        byte1 |= (byte & bit_7_mask) >> 3
-        byte1 |= (byte & bit_6_mask) >> 3
-        byte1 |= (byte & bit_5_mask) >> 3
+        number = byte[0]
 
-        byte2 |= (byte & bit_4_mask) << 2
-        byte2 |= (byte & bit_3_mask) << 1
-        byte2 |= (byte & bit_2_mask) << 1
-        byte2 |= (byte & bit_1_mask) << 1
+        byte1 |= (number & bit_8_mask) >> 2
+        byte1 |= (number & bit_7_mask) >> 3
+        byte1 |= (number & bit_6_mask) >> 3
+        byte1 |= (number & bit_5_mask) >> 3
+
+        byte2 |= (number & bit_4_mask) << 2
+        byte2 |= (number & bit_3_mask) << 1
+        byte2 |= (number & bit_2_mask) << 1
+        byte2 |= (number & bit_1_mask) << 1
 
         par1 = (int((byte1 & bit_6_mask) >> 5) + int((byte1 & bit_4_mask) >> 3) + int((byte1 & bit_2_mask) >> 1)) % 2
         par2 = (int((byte1 & bit_6_mask) >> 5) + int((byte1 & bit_3_mask) >> 2) + int((byte1 & bit_2_mask) >> 1)) % 2
@@ -48,8 +50,8 @@ def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
         if par3 > 0:
             byte2 |= bit_5_mask
 
-        yield byte1
-        yield byte2
+        yield bytes([byte1])
+        yield bytes([byte2])
 
 
 def mm_decode(source: Generator[bytes, None, None]) -> Generator[bytes, None, None]:
@@ -66,22 +68,24 @@ def mm_decode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
     bit_8_mask = int('10000000', 2)
 
     for byte in source:
+        number = byte[0]
+
         if not byte_stored:
             # Read first byte
             byte_half = int('00000000', 2)
-            byte_half |= (byte & bit_6_mask) << 2
-            byte_half |= (byte & bit_4_mask) << 3
-            byte_half |= (byte & bit_3_mask) << 3
-            byte_half |= (byte & bit_2_mask) << 3
+            byte_half |= (number & bit_6_mask) << 2
+            byte_half |= (number & bit_4_mask) << 3
+            byte_half |= (number & bit_3_mask) << 3
+            byte_half |= (number & bit_2_mask) << 3
 
             # TODO: correct errors using parity bits here
             byte_stored = True
         else:
             # Read second byte
-            byte_half |= (byte & bit_6_mask) >> 2
-            byte_half |= (byte & bit_4_mask) >> 1
-            byte_half |= (byte & bit_3_mask) >> 1
-            byte_half |= (byte & bit_2_mask) >> 1
+            byte_half |= (number & bit_6_mask) >> 2
+            byte_half |= (number & bit_4_mask) >> 1
+            byte_half |= (number & bit_3_mask) >> 1
+            byte_half |= (number & bit_2_mask) >> 1
 
             byte_stored = False
-            yield byte_half
+            yield bytes([byte_half])
