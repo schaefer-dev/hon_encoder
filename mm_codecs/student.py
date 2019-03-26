@@ -9,7 +9,11 @@ bit_6_mask = int('00100000', 2)
 bit_7_mask = int('01000000', 2)
 bit_8_mask = int('10000000', 2)
 
+buffer_order = [0, 2, 1, 3]
+
 def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, None]:
+
+    buffer = []
 
     for byte in source:
         # TODO: Do something sensible.
@@ -50,8 +54,25 @@ def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
         if par3 > 0:
             byte2 |= bit_5_mask
 
-        yield bytes([byte1])
-        yield bytes([byte2])
+
+        buffer.append(bytes([byte1]))
+        buffer.append(bytes([byte2]))
+        if len(buffer) >= 4:
+            yield buffer[buffer_order[0]]
+            yield buffer[buffer_order[1]]
+            yield buffer[buffer_order[2]]
+            yield buffer[buffer_order[3]]
+            buffer.clear()
+
+    # TODO: padding case:
+    if len(buffer) != 0:
+        while (len(buffer) != 4):
+            buffer.append(bytes(1))
+        yield buffer[buffer_order[0]]
+        yield buffer[buffer_order[1]]
+        yield buffer[buffer_order[2]]
+        yield buffer[buffer_order[3]]
+        buffer.clear()
 
 
 def fix_byte(input_number) -> int:
@@ -96,40 +117,31 @@ def fix_byte(input_number) -> int:
 
     return result_number
 
+def reconstructFromBytes(byte1, byte2) -> bytes:
+    number1 = fix_byte(byte1[0])
+    number2 = fix_byte(byte2[0])
+    byte_result= int('00000000', 2)
+    byte_result |= (number1 & bit_6_mask) << 2
+    byte_result |= (number1 & bit_4_mask) << 3
+    byte_result |= (number1 & bit_3_mask) << 3
+    byte_result |= (number1 & bit_2_mask) << 3
+    byte_result |= (number2 & bit_6_mask) >> 2
+    byte_result |= (number2 & bit_4_mask) >> 1
+    byte_result |= (number2 & bit_3_mask) >> 1
+    byte_result |= (number2 & bit_2_mask) >> 1
+
+    return bytes([byte_result])
+
 
 def mm_decode(source: Generator[bytes, None, None]) -> Generator[bytes, None, None]:
     byte_half = int('00000000', 2)
-    byte_stored = False
+    buffer = []
 
     for byte in source:
-        number = byte[0]
 
-        if not byte_stored:
-            # Read first byte
-            number = fix_byte(number)
+        buffer.append(byte)
 
-            byte_half = int('00000000', 2)
-            byte_half |= (number & bit_6_mask) << 2
-            byte_half |= (number & bit_4_mask) << 3
-            byte_half |= (number & bit_3_mask) << 3
-            byte_half |= (number & bit_2_mask) << 3
-
-            par1 = (number & bit_8_mask) << 7
-            par2 = (number & bit_7_mask) << 6
-            par3 = (number & bit_5_mask) << 4
-
-            # TODO: correct errors using parity bits here
-            byte_stored = True
-        else:
-            # Read second byte
-            number = fix_byte(number)
-
-            byte_half |= (number & bit_6_mask) >> 2
-            byte_half |= (number & bit_4_mask) >> 1
-            byte_half |= (number & bit_3_mask) >> 1
-            byte_half |= (number & bit_2_mask) >> 1
-
-            # TODO: correct errors using parity bits here
-
-            byte_stored = False
-            yield bytes([byte_half])
+        if len(buffer) >= 4:
+            yield reconstructFromBytes(buffer[buffer_order[0]], buffer[buffer_order[1]])
+            yield reconstructFromBytes(buffer[buffer_order[2]], buffer[buffer_order[3]])
+            buffer.clear()
