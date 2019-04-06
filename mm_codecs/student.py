@@ -12,22 +12,24 @@ bit_8_mask = int('10000000', 2)
 def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, None]:
 
     for byte in source:
-        # TODO: Do something sensible.
         byte1 = int('00000000', 2)
         byte2 = int('00000000', 2)
 
         number = byte[0]
 
+        # Set original source bytes for first source-byte half
         byte1 |= (number & bit_8_mask) >> 2
         byte1 |= (number & bit_7_mask) >> 3
         byte1 |= (number & bit_6_mask) >> 3
         byte1 |= (number & bit_5_mask) >> 3
 
+        # Set original source bytes for second source-byte half
         byte2 |= (number & bit_4_mask) << 2
         byte2 |= (number & bit_3_mask) << 1
         byte2 |= (number & bit_2_mask) << 1
         byte2 |= (number & bit_1_mask) << 1
 
+        # set parity bytes for first source-byte half
         par1 = (int((byte1 & bit_6_mask) >> 5) + int((byte1 & bit_4_mask) >> 3) + int((byte1 & bit_2_mask) >> 1)) % 2
         par2 = (int((byte1 & bit_6_mask) >> 5) + int((byte1 & bit_3_mask) >> 2) + int((byte1 & bit_2_mask) >> 1)) % 2
         par3 = (int((byte1 & bit_4_mask) >> 3) + int((byte1 & bit_3_mask) >> 2) + int((byte1 & bit_2_mask) >> 1)) % 2
@@ -39,6 +41,7 @@ def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
         if par3 > 0:
             byte1 |= bit_5_mask
 
+        # set parity bytes for second source-byte half
         par1 = (int((byte2 & bit_6_mask) >> 5) + int((byte2 & bit_4_mask) >> 3) + int((byte2 & bit_2_mask) >> 1)) % 2
         par2 = (int((byte2 & bit_6_mask) >> 5) + int((byte2 & bit_3_mask) >> 2) + int((byte2 & bit_2_mask) >> 1)) % 2
         par3 = (int((byte2 & bit_4_mask) >> 3) + int((byte2 & bit_3_mask) >> 2) + int((byte2 & bit_2_mask) >> 1)) % 2
@@ -54,9 +57,11 @@ def mm_encode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
         yield bytes([byte2])
 
 
+# fix the byte that is input using hemming code 7,4
 def fix_byte(input_number) -> int:
     result_number = 0
 
+    # Read original bit values from byte
     p1 = (input_number & bit_8_mask) >> 7
     p2 = (input_number & bit_7_mask) >> 6
     c3 = (input_number & bit_6_mask) >> 5
@@ -65,6 +70,7 @@ def fix_byte(input_number) -> int:
     c6 = (input_number & bit_3_mask) >> 2
     c7 = (input_number & bit_2_mask) >> 1
 
+    # Calculate s values
     s1 = False if (p1 + c3 + c5 + c7) % 2 == 0 else True
     s2 = False if (p2 + c3 + c6 + c7) % 2 == 0 else True
     s3 = False if (p4 + c5 + c6 + c7) % 2 == 0 else True
@@ -118,7 +124,6 @@ def mm_decode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
             par2 = (number & bit_7_mask) << 6
             par3 = (number & bit_5_mask) << 4
 
-            # TODO: correct errors using parity bits here
             byte_stored = True
         else:
             # Read second byte
@@ -128,8 +133,6 @@ def mm_decode(source: Generator[bytes, None, None]) -> Generator[bytes, None, No
             byte_half |= (number & bit_4_mask) >> 1
             byte_half |= (number & bit_3_mask) >> 1
             byte_half |= (number & bit_2_mask) >> 1
-
-            # TODO: correct errors using parity bits here
 
             byte_stored = False
             yield bytes([byte_half])
